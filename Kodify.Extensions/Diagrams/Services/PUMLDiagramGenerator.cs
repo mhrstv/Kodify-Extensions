@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Kodify.AutoDoc.Models;
-using Kodify.AutoDoc.Services;
+using Kodify.AutoDoc;
 
 namespace Kodify.Extensions.Diagrams.Services
 {
