@@ -42,6 +42,8 @@ namespace Kodify.Extensions.Diagrams.Services
             // Group classes by namespace.
             // We'll store for each namespace a list of tuples containing the class declaration and its file path.
             var namespaceClasses = new Dictionary<string, List<(ClassDeclarationSyntax ClassDecl, string FilePath)>>();
+            var namespaceInterfaces = new Dictionary<string, List<(InterfaceDeclarationSyntax InterfaceDecl, string FilePath)>>();
+            var relationships = new List<string>();
             
             foreach (var file in csFiles)
             {
@@ -49,6 +51,7 @@ namespace Kodify.Extensions.Diagrams.Services
                 var tree = CSharpSyntaxTree.ParseText(fileContent, path: file);
                 var root = tree.GetRoot();
                 var classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>().ToList();
+                var interfaceDeclarations = root.DescendantNodes().OfType<InterfaceDeclarationSyntax>().ToList();
                 
                 foreach (var classDecl in classDeclarations)
                 {
@@ -59,57 +62,176 @@ namespace Kodify.Extensions.Diagrams.Services
                         namespaceClasses[ns] = new List<(ClassDeclarationSyntax, string)>();
                     }
                     namespaceClasses[ns].Add((classDecl, file));
+
+                    // Handle inheritance
+                    if (classDecl.BaseList != null)
+                    {
+                        foreach (var baseType in classDecl.BaseList.Types)
+                        {
+                            relationships.Add($"{classDecl.Identifier.Text} --|> {baseType.Type}");
+                        }
+                    }
+                }
+
+                foreach (var interfaceDecl in interfaceDeclarations)
+                {
+                    string ns = GetNamespaceForInterface(interfaceDecl) ?? "Global";
+                    
+                    if (!namespaceInterfaces.ContainsKey(ns))
+                    {
+                        namespaceInterfaces[ns] = new List<(InterfaceDeclarationSyntax, string)>();
+                    }
+                    namespaceInterfaces[ns].Add((interfaceDecl, file));
                 }
             }
             
             // Build the PUML using a StringBuilder.
             var sb = new StringBuilder();
             sb.AppendLine("@startuml");
-            sb.AppendLine("' Interactive diagram with clickable classes");
+            
+            // Global styling
+            sb.AppendLine("' Configuration");
+            sb.AppendLine("hide empty members");
+            sb.AppendLine("skinparam shadowing false");
+            sb.AppendLine("skinparam handwritten false");
+            sb.AppendLine("skinparam monochrome false");
+            sb.AppendLine("skinparam linetype ortho");
+            
+            // Class styling
             sb.AppendLine("skinparam class {");
-            sb.AppendLine("  BackgroundColor<<Clickable>> LightBlue");
-            sb.AppendLine("  BorderColor<<Clickable>> Black");
+            sb.AppendLine("    BackgroundColor<<Clickable>> #E3F2FD");
+            sb.AppendLine("    BorderColor<<Clickable>> #1976D2");
+            sb.AppendLine("    HeaderBackgroundColor<<Clickable>> #BBDEFB");
+            sb.AppendLine("    FontSize 12");
+            sb.AppendLine("    AttributeFontSize 11");
+            sb.AppendLine("    AttributeFontColor #333333");
+            sb.AppendLine("    BorderThickness 1");
             sb.AppendLine("}");
             
-            // For each namespace (or package), list the classes.
-            foreach (var ns in namespaceClasses.Keys.OrderBy(n => n))
+            // Interface styling
+            sb.AppendLine("skinparam interface {");
+            sb.AppendLine("    BackgroundColor<<Clickable>> #F1F8E9");
+            sb.AppendLine("    BorderColor<<Clickable>> #689F38");
+            sb.AppendLine("    HeaderBackgroundColor<<Clickable>> #DCEDC8");
+            sb.AppendLine("    FontSize 12");
+            sb.AppendLine("    AttributeFontSize 11");
+            sb.AppendLine("    AttributeFontColor #333333");
+            sb.AppendLine("    BorderThickness 1");
+            sb.AppendLine("}");
+            
+            // Arrow styling
+            sb.AppendLine("skinparam arrow {");
+            sb.AppendLine("    Color #666666");
+            sb.AppendLine("    FontSize 11");
+            sb.AppendLine("    Thickness 1");
+            sb.AppendLine("}");
+            
+            // For each namespace (or package), list the interfaces and classes
+            foreach (var ns in namespaceClasses.Keys.Union(namespaceInterfaces.Keys).OrderBy(n => n))
             {
                 sb.AppendLine($"package {ns} {{");
                 
-                foreach (var (classDecl, filePath) in namespaceClasses[ns])
+                // Add interfaces first
+                if (namespaceInterfaces.ContainsKey(ns))
                 {
-                    string className = classDecl.Identifier.Text;
-                    
-                    // Create a clickable hyperlink using a file:// URL.
-                    // Convert the file path to an absolute URI.
-                    string fullFilePath = Path.GetFullPath(filePath);
-                    string fileUri = new Uri(fullFilePath).AbsoluteUri;
-                    
-                    // Format: class ClassName <<Clickable>> [[fileUri]]
-                    sb.AppendLine($"class {className} <<Clickable>> [[{fileUri}]] {{");
-                    
-                    // Add method and property members.
-                    foreach (var member in classDecl.Members)
+                    foreach (var (interfaceDecl, filePath) in namespaceInterfaces[ns])
                     {
-                        if (member is MethodDeclarationSyntax method)
+                        string interfaceName = interfaceDecl.Identifier.Text;
+                        string fullFilePath = Path.GetFullPath(filePath);
+                        string fileUri = new Uri(fullFilePath).AbsoluteUri;
+                        
+                        sb.AppendLine($"interface {interfaceName} <<Clickable>> [[{fileUri}]] {{");
+                        
+                        foreach (var member in interfaceDecl.Members)
                         {
-                            // Use + for public, - for non‑public.
-                            string visibility = method.Modifiers.Any(SyntaxKind.PublicKeyword) ? "+" : "-";
-                            sb.AppendLine($"    {visibility} {method.Identifier.Text}()");
+                            if (member is MethodDeclarationSyntax method)
+                            {
+                                sb.AppendLine($"    + {method.Identifier.Text}()");
+                            }
+                            else if (member is PropertyDeclarationSyntax property)
+                            {
+                                string typeName = property.Type.ToString();
+                                sb.AppendLine($"    + {property.Identifier.Text} : {typeName}");
+                            }
                         }
-                        else if (member is PropertyDeclarationSyntax property)
+                        
+                        sb.AppendLine("}");
+                        sb.AppendLine();
+                    }
+                }
+
+                // Add classes
+                if (namespaceClasses.ContainsKey(ns))
+                {
+                    foreach (var (classDecl, filePath) in namespaceClasses[ns])
+                    {
+                        string className = classDecl.Identifier.Text;
+                        string fullFilePath = Path.GetFullPath(filePath);
+                        string fileUri = new Uri(fullFilePath).AbsoluteUri;
+                        
+                        sb.AppendLine($"class {className} <<Clickable>> [[{fileUri}]] {{");
+                        
+                        // Add fields
+                        foreach (var member in classDecl.Members)
                         {
-                            string visibility = property.Modifiers.Any(SyntaxKind.PublicKeyword) ? "+" : "-";
-                            string typeName = property.Type.ToString();
-                            sb.AppendLine($"    {visibility} {property.Identifier.Text} : {typeName}");
+                            if (member is FieldDeclarationSyntax field)
+                            {
+                                string visibility = field.Modifiers.Any(SyntaxKind.PublicKeyword) ? "+" : "-";
+                                string typeName = field.Declaration.Type.ToString();
+                                foreach (var variable in field.Declaration.Variables)
+                                {
+                                    sb.AppendLine($"    {visibility} {variable.Identifier.Text} : {typeName}");
+                                }
+                            }
+                            else if (member is MethodDeclarationSyntax method)
+                            {
+                                string visibility = method.Modifiers.Any(SyntaxKind.PublicKeyword) ? "+" : "-";
+                                string returnType = method.ReturnType.ToString();
+                                sb.AppendLine($"    {visibility} {method.Identifier.Text}() : {returnType}");
+                            }
+                            else if (member is PropertyDeclarationSyntax property)
+                            {
+                                string visibility = property.Modifiers.Any(SyntaxKind.PublicKeyword) ? "+" : "-";
+                                string typeName = property.Type.ToString();
+                                sb.AppendLine($"    {visibility} {property.Identifier.Text} : {typeName}");
+                            }
+                        }
+                        
+                        sb.AppendLine("}");
+                        sb.AppendLine();
+
+                        // Add relationships based on field types and method parameters
+                        foreach (var member in classDecl.Members)
+                        {
+                            if (member is FieldDeclarationSyntax field)
+                            {
+                                string typeName = field.Declaration.Type.ToString();
+                                if (!IsBuiltInType(typeName))
+                                {
+                                    relationships.Add($"{className} --> {typeName} : has");
+                                }
+                            }
+                            else if (member is PropertyDeclarationSyntax property)
+                            {
+                                string typeName = property.Type.ToString();
+                                if (!IsBuiltInType(typeName))
+                                {
+                                    relationships.Add($"{className} --> {typeName} : has");
+                                }
+                            }
                         }
                     }
-                    
-                    sb.AppendLine("}");
-                    sb.AppendLine();
                 }
                 
                 sb.AppendLine("}");
+            }
+
+            // Add all relationships at the end
+            sb.AppendLine();
+            sb.AppendLine("' Relationships");
+            foreach (var relationship in relationships.Distinct())
+            {
+                sb.AppendLine(relationship);
             }
             
             sb.AppendLine("@enduml");
@@ -123,6 +245,20 @@ namespace Kodify.Extensions.Diagrams.Services
         private string GetNamespace(ClassDeclarationSyntax classDecl)
         {
             SyntaxNode parent = classDecl.Parent;
+            while (parent != null)
+            {
+                if (parent is NamespaceDeclarationSyntax namespaceDecl)
+                {
+                    return namespaceDecl.Name.ToString();
+                }
+                parent = parent.Parent;
+            }
+            return null;
+        }
+
+        private string GetNamespaceForInterface(InterfaceDeclarationSyntax interfaceDecl)
+        {
+            SyntaxNode parent = interfaceDecl.Parent;
             while (parent != null)
             {
                 if (parent is NamespaceDeclarationSyntax namespaceDecl)
@@ -168,6 +304,12 @@ namespace Kodify.Extensions.Diagrams.Services
 
             return trueRoot?.FullName ?? 
                 throw new DirectoryNotFoundException("Project root not found");
+        }
+
+        private bool IsBuiltInType(string typeName)
+        {
+            var builtInTypes = new[] { "string", "int", "bool", "double", "float", "decimal", "char", "byte", "object", "String", "Int32", "Boolean", "Double", "Single", "Decimal", "Char", "Byte", "Object" };
+            return builtInTypes.Contains(typeName) || typeName.StartsWith("List<") || typeName.StartsWith("IEnumerable<") || typeName.StartsWith("Dictionary<");
         }
     }
 }
