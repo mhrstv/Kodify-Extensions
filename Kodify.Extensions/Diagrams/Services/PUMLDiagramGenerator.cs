@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Kodify.AutoDoc.Models;
 using Kodify.AutoDoc;
 
-namespace Kodify.Extensions.Diagrams.Services
+namespace Kodify.Extensions.Diagrams
 {
     public class PUMLDiagramGenerator
     {
