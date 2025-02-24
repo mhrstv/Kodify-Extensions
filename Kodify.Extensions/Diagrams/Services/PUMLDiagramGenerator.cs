@@ -1,20 +1,15 @@
-using System;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Kodify.AutoDoc.Models;
-using Kodify.AutoDoc;
+using Kodify.Repository.Services;
 
 namespace Kodify.Extensions.Diagrams
 {
     public class PUMLDiagramGenerator
     {
         private readonly ProjectAnalyzer _projectAnalyzer;
-        private AutoDoc.Models.ProjectInfo _projectInfo;
+        private Kodify.Repository.Models.ProjectInfo _projectInfo;
 
         public PUMLDiagramGenerator()
         {
