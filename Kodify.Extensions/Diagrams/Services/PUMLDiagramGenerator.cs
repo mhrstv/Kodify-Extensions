@@ -29,6 +29,11 @@ namespace Kodify.Extensions.Diagrams
             GeneratePUMLDiagrams(sourcePath, outputPath);
         }
 
+        public void GeneratePUML(string sourcePath, string outputPath)
+        {
+            GeneratePUMLDiagrams(sourcePath, outputPath);
+        }
+
         private void GeneratePUMLDiagrams(string sourcePath, string outputPath)
         {
             // Get all C# files recursively.
