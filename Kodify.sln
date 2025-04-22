@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kodify.Extensions", "Kodify.Extensions\Kodify.Extensions.csproj", "{21082529-0C7D-436C-B322-7BF924F0E25A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kodify.Extensions.Tests", "Kodify.Extensions.Tests\Kodify.Extensions.Tests.csproj", "{31CA06B3-FE63-4913-82FB-B0AD1381C1DA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{21082529-0C7D-436C-B322-7BF924F0E25A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21082529-0C7D-436C-B322-7BF924F0E25A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21082529-0C7D-436C-B322-7BF924F0E25A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21082529-0C7D-436C-B322-7BF924F0E25A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31CA06B3-FE63-4913-82FB-B0AD1381C1DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31CA06B3-FE63-4913-82FB-B0AD1381C1DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31CA06B3-FE63-4913-82FB-B0AD1381C1DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31CA06B3-FE63-4913-82FB-B0AD1381C1DA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
